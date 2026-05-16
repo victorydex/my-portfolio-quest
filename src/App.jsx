@@ -7,25 +7,27 @@ import {
 
 // =========================================================
 //  ACTOR CATALOG (Mock — UE5 실제 연동 전까지 사용)
+//  "매장된 자들의 방부드남" 퀘스트용 액터
 // =========================================================
 const ACTOR_CATALOG = [
-  { guid: 'a4f2-9c1b-npc-jui',     name: 'BP_NPC_Jui_C_1',            type: 'NPC',          level: 'RainbowLake',  tags: ['NPC.Jui'] },
-  { guid: 'b6d3-7e2a-npc-dongi',   name: 'BP_NPC_Dongi_C_1',          type: 'NPC',          level: 'DyeWorkshop',  tags: ['NPC.Dongi'] },
-  { guid: 'c8e4-5f31-npc-dune',    name: 'BP_NPC_Dune_C_3',           type: 'NPC',          level: 'Village',      tags: ['NPC.Dune'] },
-  { guid: 'd1a5-3b4c-mon-frog',    name: 'BP_Monster_Frog',           type: 'Monster',      level: 'RainbowLake',  tags: ['Monster.Frog'] },
-  { guid: 'e2b6-4c5d-mon-geowa',   name: 'BP_Monster_Geowa',          type: 'Monster',      level: 'DeepCave',     tags: ['Monster.Geowa'] },
-  { guid: 'f3c7-5d6e-obj-board',   name: 'BP_NoticeBoard_Village_1',  type: 'Interactable', level: 'Village',      tags: ['Object.Board'] },
-  { guid: 'g4d8-6e7f-obj-falls',   name: 'BP_Waterfall_Interact',     type: 'Interactable', level: 'RainbowLake',  tags: ['Object.Water'] },
-  { guid: 'h5e9-7f8a-trg-hut',     name: 'BP_BoxTrigger_DuneHut',    type: 'Trigger',      level: 'Village',      tags: ['Area.DuneHut'] },
-  { guid: 'i6fa-8a9b-trg-village', name: 'BP_BoxTrigger_VillageGate', type: 'Trigger',      level: 'Village',      tags: ['Area.Village'] }
+  { guid: 'j7a1-buried-board',   name: 'BP_NoticeBoard_Buried_C_1',      type: 'Interactable', level: 'Village',    tags: ['Object.Board'] },
+  { guid: 'k8b2-buried-dune',    name: 'BP_NPC_Dune_C_3',                 type: 'NPC',          level: 'Village',    tags: ['NPC.Dune'] },
+  { guid: 'l9c3-buried-hut',     name: 'BP_BoxTrigger_AbandonedHut',      type: 'Trigger',      level: 'Wilderness', tags: ['Area.AbandonedHut'] },
+  { guid: 'm1d4-buried-battle',  name: 'BP_BoxTrigger_Battlefield',       type: 'Trigger',      level: 'Wilderness', tags: ['Area.Battlefield'] },
+  { guid: 'n2e5-buried-shield',  name: 'BP_Interact_WhiteFlowerShield',   type: 'Interactable', level: 'Wilderness', tags: ['Object.Shield'] },
+  { guid: 'o3f6-buried-lake',    name: 'BP_BoxTrigger_LakePath',          type: 'Trigger',      level: 'Wilderness', tags: ['Area.LakePath'] },
+  { guid: 'p4a7-buried-hut-int', name: 'BP_BoxTrigger_HutInterior',       type: 'Trigger',      level: 'Wilderness', tags: ['Area.HutInterior'] },
+  { guid: 'q5b8-buried-bastian', name: 'BP_NPC_Bastian',                  type: 'NPC',          level: 'Wilderness', tags: ['NPC.Bastian'] },
+  { guid: 'r6c9-buried-ryosin',  name: 'BP_NPC_Ryosin',                   type: 'NPC',          level: 'Wilderness', tags: ['NPC.Ryosin'] }
 ];
 
 const GAMEPLAY_TAGS = [
-  'NPC.Jui', 'NPC.Dongi', 'NPC.Dune',
+  'NPC.Dune', 'NPC.Bastian', 'NPC.Ryosin',
   'Monster.Frog', 'Monster.Geowa', 'Monster.Bandit',
-  'Object.Board', 'Object.Water', 'Object.Door',
-  'Area.Village', 'Area.RainbowLake', 'Area.DuneHut',
-  'EntryRoute.Board', 'EntryRoute.Proximity', 'EntryRoute.AreaEnter'
+  'Object.Board', 'Object.Shield', 'Object.Door',
+  'Area.Village', 'Area.AbandonedHut', 'Area.Battlefield',
+  'Area.LakePath', 'Area.HutInterior',
+  'EntryRoute.Board', 'EntryRoute.Proximity', 'EntryRoute.HutDiscovery'
 ];
 
 function getActor(guid) {
@@ -154,9 +156,169 @@ const FACT_REGISTRY = [
 ];
 
 // =========================================================
-//  SAMPLE QUEST DATA — 추후 지시문에서 추가 예정, 일단 빈 캔버스
+//  QUEST: 매장된 자들의 방부드남
 // =========================================================
+const buildBuriedOnesQuest = () => {
+  const gen = (() => { let n = 0; return () => `b${++n}`; })();
+  const make = (type, x, y, props = {}) => ({
+    id: gen(), type, x, y,
+    props: { ...NODE_TYPES[type].defaults, ...props }
+  });
+
+  // ── 진입 경로 (3개 Start) ──────────────────────────────
+  const n1 = make('Start', 60, 60, {
+    trigger_type: 'on_interact',
+    target: { mode: 'actor', actorGuid: 'j7a1-buried-board', tag: null },
+    is_auto_accept: false, priority: 1,
+    entry_route_tag: 'EntryRoute.Board'
+  });
+  const n2 = make('Start', 280, 60, {
+    trigger_type: 'on_proximity',
+    target: { mode: 'actor', actorGuid: 'k8b2-buried-dune', tag: null },
+    distance_m: 20, is_auto_accept: false, priority: 0,
+    entry_route_tag: 'EntryRoute.Proximity'
+  });
+  const n3 = make('Start', 520, 60, {
+    trigger_type: 'on_area_enter',
+    target: { mode: 'actor', actorGuid: 'l9c3-buried-hut', tag: null },
+    is_auto_accept: true, priority: 0,
+    entry_route_tag: 'EntryRoute.HutDiscovery'
+  });
+
+  // ── 수락 분기 ──────────────────────────────────────────
+  const n4 = make('Dialogue', 60, 210, {
+    scene_asset: 'dlg_dune_accept_board',
+    participants: [{ mode: 'actor', actorGuid: 'k8b2-buried-dune', tag: null }],
+    camera_mode: 'over_shoulder', context_facts: []
+  });
+  const n5 = make('Dialogue', 280, 210, {
+    scene_asset: 'dlg_dune_accept_proximity',
+    participants: [{ mode: 'actor', actorGuid: 'k8b2-buried-dune', tag: null }],
+    camera_mode: 'over_shoulder', context_facts: []
+  });
+  const n6 = make('Phase', 520, 210, {
+    objective_text: '마을에 있는 뒤과 대화',
+    goal_type: 'interact',
+    target: { mode: 'actor', actorGuid: 'k8b2-buried-dune', tag: null },
+    interaction_type: 'talk',
+    hints: ['뒤은 마을 어귀에 있음']
+  });
+
+  // ── 고정 루트 1 (SEQUENCE + Skip) ─────────────────────
+  const n7 = make('PhaseGroup', 180, 370, {
+    policy: 'SEQUENCE',
+    skip_on: {
+      question_type: 'visited',
+      target: { mode: 'actor', actorGuid: 'p4a7-buried-hut-int', tag: null },
+      count: 1, comparator: 'gte',
+      item_id: '', quest_id: '', ending_tag: '',
+      fact_key: '', operator: '==', compare_value: ''
+    }
+  });
+  const n8 = make('Phase', 220, 415, {
+    objective_text: '시체들이 가득한 전장 도착',
+    goal_type: 'area_reach',
+    target: { mode: 'actor', actorGuid: 'm1d4-buried-battle', tag: null },
+    hints: ['전장은 마을 북쪽에 있음']
+  });
+  const n9 = make('Phase', 220, 510, {
+    objective_text: '워쳐 렌즈로 흰색 꽃이 그려진 방패 조사',
+    goal_type: 'interact',
+    target: { mode: 'actor', actorGuid: 'n2e5-buried-shield', tag: null },
+    interaction_type: 'examine',
+    hints: ['워쳐 렌즈(L2)로 단서 파악', '방패는 시체 근처에 떨어져 있음']
+  });
+  const n10 = make('Phase', 220, 605, {
+    objective_text: '뒤과 함께 호수길을 따라가기',
+    goal_type: 'area_reach',
+    target: { mode: 'actor', actorGuid: 'o3f6-buried-lake', tag: null },
+    hints: ['뒤이 앞장서서 길을 안내']
+  });
+  const n11 = make('Phase', 220, 700, {
+    objective_text: '버려진 오두막에서 박스티안과 룬신 만나기',
+    goal_type: 'area_reach',
+    target: { mode: 'actor', actorGuid: 'p4a7-buried-hut-int', tag: null },
+    hints: ['오두막은 호수 남쪽 끝에 있음']
+  });
+
+  // ── 고정 루트 2 ────────────────────────────────────────
+  const n12 = make('Phase', 420, 840, {
+    objective_text: '뒤과 대화하고 룬신의 처치를 결정하기',
+    goal_type: 'interact',
+    target: { mode: 'actor', actorGuid: 'k8b2-buried-dune', tag: null },
+    interaction_type: 'talk',
+    hints: ['뒤이 결정을 기다리고 있음']
+  });
+  const n13 = make('Dialogue', 420, 960, {
+    scene_asset: 'dlg_decide_ryosin_fate',
+    participants: [
+      { mode: 'actor', actorGuid: 'k8b2-buried-dune', tag: null },
+      { mode: 'actor', actorGuid: 'r6c9-buried-ryosin', tag: null }
+    ],
+    camera_mode: 'over_shoulder', context_facts: []
+  });
+
+  // ── 결말 분기 ──────────────────────────────────────────
+  const n14 = make('Effect', 240, 1090, {
+    effects: [{ effect_type: 'set_quest_ending', quest_id: 'buried_ones', ending_tag: 'A' }]
+  });
+  const n15 = make('End', 240, 1210, {
+    ending_tag: 'A', result_type: 'success', on_end_effects: []
+  });
+  const n16 = make('Effect', 600, 1090, {
+    effects: [{ effect_type: 'set_quest_ending', quest_id: 'buried_ones', ending_tag: 'B' }]
+  });
+  const n17 = make('End', 600, 1210, {
+    ending_tag: 'B', result_type: 'success', on_end_effects: []
+  });
+
+  const nodes = [n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17];
+
+  const edges = [
+    { from: n1.id, fromPin: 0, to: n4.id,  toPin: 0 },
+    { from: n2.id, fromPin: 0, to: n5.id,  toPin: 0 },
+    { from: n3.id, fromPin: 0, to: n6.id,  toPin: 0 },
+    { from: n4.id, fromPin: 0, to: n7.id,  toPin: 0 },
+    { from: n5.id, fromPin: 0, to: n7.id,  toPin: 0 },
+    { from: n7.id, fromPin: 0, to: n12.id, toPin: 0 }, // OUT
+    { from: n7.id, fromPin: 1, to: n12.id, toPin: 0 }, // SKIP
+    { from: n6.id, fromPin: 0, to: n12.id, toPin: 0 }, // 경로C 합류
+    { from: n12.id, fromPin: 0, to: n13.id, toPin: 0 },
+    { from: n13.id, fromPin: 0, to: n14.id, toPin: 0 },
+    { from: n13.id, fromPin: 0, to: n16.id, toPin: 0 },
+    { from: n14.id, fromPin: 0, to: n15.id, toPin: 0 },
+    { from: n16.id, fromPin: 0, to: n17.id, toPin: 0 }
+  ];
+
+  const groups = [
+    { id: 'g_fixed_route_1', groupNodeId: n7.id, memberIds: [n8.id, n9.id, n10.id, n11.id] }
+  ];
+
+  return { nodes, edges, groups };
+};
+
+// 빈 캔버스
 const buildSampleQuest = () => ({ nodes: [], edges: [], groups: [] });
+
+// =========================================================
+//  QUEST REGISTRY — 상단 드롭다운에서 선택
+// =========================================================
+const QUESTS = [
+  {
+    id: 'buried_ones',
+    label: '매장된 자들의 방부드남',
+    filename: 'quest_buried_ones.qgraph',
+    subtitle: '뒤과 함께 버려진 오두막에 도착해 룬신의 처치를 결정한다.',
+    build: buildBuriedOnesQuest
+  },
+  {
+    id: 'empty',
+    label: '(새 캔버스)',
+    filename: 'untitled.qgraph',
+    subtitle: '팔레트에서 노드를 추가해 그래프를 구성하세요.',
+    build: buildSampleQuest
+  }
+];
 
 // =========================================================
 //  NODE BODY TEXT
@@ -1054,10 +1216,11 @@ function bezierPath(x1, y1, x2, y2) {
 //  MAIN COMPONENT
 // =========================================================
 export default function QuestGraphEditor() {
-  const initial = buildSampleQuest();
+  const [activeQuestId, setActiveQuestId] = useState('buried_ones');
+  const initial = buildBuriedOnesQuest();
   const [nodes, setNodes] = useState(initial.nodes);
   const [edges, setEdges] = useState(initial.edges);
-  const [groups] = useState(initial.groups);
+  const [groups, setGroups] = useState(initial.groups);
   const [selectedId, setSelectedId] = useState(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(0.85);
@@ -1069,6 +1232,18 @@ export default function QuestGraphEditor() {
   const idCounter = useRef(100);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2200); };
+
+  const loadQuest = (questId) => {
+    const q = QUESTS.find(q => q.id === questId);
+    if (!q) return;
+    const data = q.build();
+    setNodes(data.nodes);
+    setEdges(data.edges);
+    setGroups(data.groups);
+    setSelectedId(null);
+    setActiveQuestId(questId);
+    idCounter.current = 200;
+  };
 
   const handleCanvasMouseDown = (e) => {
     if (e.target === canvasRef.current || e.target.dataset.bg === '1') {
@@ -1181,8 +1356,28 @@ export default function QuestGraphEditor() {
         <div style={{ width: 1, height: 24, background: '#2a2620', margin: '0 4px' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#a89a7a' }}>
           <FileCode size={13} />
-          <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>untitled.qgraph</span>
+          <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            {QUESTS.find(q => q.id === activeQuestId)?.filename ?? 'untitled.qgraph'}
+          </span>
         </div>
+
+        {/* 퀘스트 선택 드롭다운 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 9.5, color: '#7a7468', fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.1em', textTransform: 'uppercase' }}>QUEST</span>
+          <select
+            value={activeQuestId}
+            onChange={e => loadQuest(e.target.value)}
+            style={{
+              background: '#1a1814', border: '1px solid #3a342c',
+              color: '#d4cdbf', padding: '5px 10px', fontSize: 11,
+              fontFamily: '"JetBrains Mono", monospace',
+              borderRadius: 3, cursor: 'pointer', outline: 'none'
+            }}
+          >
+            {QUESTS.map(q => <option key={q.id} value={q.id}>{q.label}</option>)}
+          </select>
+        </div>
+
         <div style={{ flex: 1 }} />
         <button onClick={() => showToast('Save · 데모 버전에서는 저장되지 않습니다')} style={toolBtn}><Save size={13} /> Save</button>
         <button onClick={() => showToast('Export · 데모 버전에서는 추출되지 않습니다')} style={toolBtn}><Download size={13} /> Export XLSX</button>
@@ -1290,11 +1485,16 @@ export default function QuestGraphEditor() {
             {Math.round(zoom * 100)}% · {nodes.length} nodes · {edges.length} edges
           </div>
 
-          <div style={{ position: 'absolute', top: 16, right: 16, padding: '10px 14px', background: '#1a1814cc', backdropFilter: 'blur(8px)', border: '1px solid #2a2620', borderRadius: 3, maxWidth: 280 }}>
-            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 9, letterSpacing: '0.18em', color: '#7a7468', marginBottom: 4 }}>QUEST</div>
-            <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 17, fontWeight: 600, color: '#e8e1d0', lineHeight: 1.2 }}>새 퀘스트</div>
-            <div style={{ fontSize: 10.5, color: '#a89a7a', marginTop: 4, lineHeight: 1.4 }}>팔레트에서 노드를 추가해 그래프를 구성하세요.</div>
-          </div>
+          {(() => {
+            const aq = QUESTS.find(q => q.id === activeQuestId);
+            return (
+              <div style={{ position: 'absolute', top: 16, right: 16, padding: '10px 14px', background: '#1a1814cc', backdropFilter: 'blur(8px)', border: '1px solid #2a2620', borderRadius: 3, maxWidth: 300 }}>
+                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 9, letterSpacing: '0.18em', color: '#7a7468', marginBottom: 4 }}>QUEST</div>
+                <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 17, fontWeight: 600, color: '#e8e1d0', lineHeight: 1.2 }}>{aq?.label ?? '새 퀘스트'}</div>
+                <div style={{ fontSize: 10.5, color: '#a89a7a', marginTop: 4, lineHeight: 1.4 }}>{aq?.subtitle ?? ''}</div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* RIGHT INSPECTOR */}
