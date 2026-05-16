@@ -7,7 +7,7 @@ import {
 
 // =========================================================
 //  ACTOR CATALOG (Mock — UE5 실제 연동 전까지 사용)
-//  "매장된 자들의 방부드남" 퀘스트용 액터
+//  "전투 중 행방불명" 퀘스트용 액터
 // =========================================================
 const ACTOR_CATALOG = [
   { guid: 'j7a1-buried-board',   name: 'BP_NoticeBoard_Buried_C_1',      type: 'Interactable', level: 'Village',    tags: ['Object.Board'] },
@@ -156,7 +156,7 @@ const FACT_REGISTRY = [
 ];
 
 // =========================================================
-//  QUEST: 매장된 자들의 방부드남
+//  QUEST: 전투 중 행방불명
 // =========================================================
 const buildBuriedOnesQuest = () => {
   const gen = (() => { let n = 0; return () => `b${++n}`; })();
@@ -306,7 +306,7 @@ const buildSampleQuest = () => ({ nodes: [], edges: [], groups: [] });
 const QUESTS = [
   {
     id: 'buried_ones',
-    label: '매장된 자들의 방부드남',
+    label: '전투 중 행방불명',
     filename: 'quest_buried_ones.qgraph',
     subtitle: '뒤과 함께 버려진 오두막에 도착해 룬신의 처치를 결정한다.',
     build: buildBuriedOnesQuest
