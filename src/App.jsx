@@ -53,9 +53,10 @@ const NODE_TYPES = {
     category: 'flow', label: 'Start', icon: Play,
     desc: '퀘스트 진입점', inPins: 0, outPins: 1,
     defaults: {
-      trigger_type: 'manual',
+      trigger_type: 'on_interact',
       target: { mode: 'actor', actorGuid: null, tag: null },
-      distance_m: 5, activation_fact: '',
+      distance_m: 5,
+      target_quest: '', required_ending: '',
       is_auto_accept: false, entry_route_tag: '',
       priority: 0, is_tracked: true
     }
@@ -332,12 +333,11 @@ function nodeBodyText(node, memberCount) {
     case 'Start': {
       let text = '';
       switch (p.trigger_type) {
-        case 'manual':        text = '자동 활성화'; break;
         case 'on_interact':   text = `상호작용: ${formatTarget(p.target)}`; break;
         case 'on_proximity':  text = `근접 ${p.distance_m}m: ${formatTarget(p.target)}`; break;
         case 'on_area_enter': text = `영역 진입: ${formatTarget(p.target)}`; break;
-        case 'on_fact':       text = `Fact: ${p.activation_fact || '?'}`; break;
-        default:              text = '진입 조건 없음';
+        case 'on_quest_state':text = `퀘스트 ${p.target_quest || '?'} = ${p.required_ending || '?'}`; break;
+        default:              text = '(트리거 미설정)';
       }
       if (p.is_auto_accept) text += ' · auto';
       return text;
@@ -893,11 +893,10 @@ function renderProperties(node, update, updateAll) {
         <>
           <Field label="Trigger Type">
             <select style={inputStyle} value={p.trigger_type} onChange={e => update('trigger_type', e.target.value)}>
-              <option value="manual">manual · 직접 활성화</option>
               <option value="on_interact">on_interact · 상호작용</option>
               <option value="on_proximity">on_proximity · 근접</option>
               <option value="on_area_enter">on_area_enter · 영역 진입</option>
-              <option value="on_fact">on_fact · Fact 감시</option>
+              <option value="on_quest_state">on_quest_state · 퀘스트 상태</option>
             </select>
           </Field>
           {p.trigger_type === 'on_interact' && <Field label="대상 (Interactable / NPC)"><TargetPicker value={tgt} onChange={v => update('target', v)} allowedTypes={['Interactable', 'NPC']} defaultMode="actor" /></Field>}
@@ -906,14 +905,10 @@ function renderProperties(node, update, updateAll) {
             <Field label="거리 (m)"><input type="number" style={inputStyle} value={p.distance_m} onChange={e => update('distance_m', Number(e.target.value))} /></Field>
           </>}
           {p.trigger_type === 'on_area_enter' && <Field label="트리거 영역"><TargetPicker value={tgt} onChange={v => update('target', v)} allowedTypes={['Trigger']} defaultMode="actor" /></Field>}
-          {p.trigger_type === 'on_fact' && (
-            <Field label="Activation Fact">
-              <select style={inputStyle} value={p.activation_fact} onChange={e => update('activation_fact', e.target.value)}>
-                <option value="">(없음 · 즉시 활성)</option>
-                {FACT_REGISTRY.map(f => <option key={f.key} value={f.key}>{f.key}</option>)}
-              </select>
-            </Field>
-          )}
+          {p.trigger_type === 'on_quest_state' && <>
+            <Field label="Target Quest ID"><input style={inputStyle} value={p.target_quest || ''} onChange={e => update('target_quest', e.target.value)} placeholder="예: buried_ones" /></Field>
+            <Field label="Required Ending"><input style={inputStyle} value={p.required_ending || ''} onChange={e => update('required_ending', e.target.value)} placeholder="예: A" /></Field>
+          </>}
           <Field label="자동 수락">
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#d4cdbf' }}>
               <input type="checkbox" checked={p.is_auto_accept} onChange={e => update('is_auto_accept', e.target.checked)} /> is_auto_accept
