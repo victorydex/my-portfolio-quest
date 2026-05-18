@@ -64,7 +64,7 @@ const NODE_TYPES = {
   End: {
     category: 'flow', label: 'End', icon: Square,
     desc: '퀘스트 종료점', inPins: 1, outPins: 0,
-    defaults: { ending_tag: 'A', result_type: 'success', on_end_effects: [] }
+    defaults: { ending_tag: 'A', ending_title: '', on_end_effects: [] }
   },
   Check: {
     // 구 Condition — 다른 퀘스트 발동은 Effect의 set_flag + Start on_fact 조합으로 처리
@@ -144,17 +144,7 @@ const CATEGORY_STYLES = {
   system:    { bg: '#4a3014', border: '#fbbf24', accent: '#fcd34d', name: '시스템' }
 };
 
-const FACT_REGISTRY = [
-  { key: 'kill_count_frog',         type: 'int',  category: '전투',   owner: 'combat',    desc: '개구리 처치 수' },
-  { key: 'kill_count_geowa',        type: 'int',  category: '전투',   owner: 'combat',    desc: '거와 처치 수' },
-  { key: 'item_count_rainbow_dust', type: 'int',  category: '아이템', owner: 'inventory', desc: '무지개 가루 보유' },
-  { key: 'item_count_water',        type: 'int',  category: '아이템', owner: 'inventory', desc: '폭포수 보유' },
-  { key: 'talked_to_jui',           type: 'bool', category: 'NPC',   owner: 'dialogue',  desc: '주이와 대화 여부' },
-  { key: 'talked_to_dongi',         type: 'bool', category: 'NPC',   owner: 'dialogue',  desc: '동이와 대화 여부' },
-  { key: 'q_rainbow_pre_completed_frog',  type: 'bool', category: '퀘스트', owner: 'quest', desc: '개구리 사전 처치' },
-  { key: 'q_rainbow_pre_completed_water', type: 'bool', category: '퀘스트', owner: 'quest', desc: '물 사전 습득' },
-  { key: 'q_rainbow_ending',        type: 'enum', category: '퀘스트', owner: 'quest',     desc: '무지개 호수 결말' }
-];
+const FACT_REGISTRY = [];
 
 // =========================================================
 //  QUEST: 전투 중 행방불명
@@ -264,13 +254,13 @@ const buildBuriedOnesQuest = () => {
     effects: [{ effect_type: 'set_quest_ending', quest_id: 'buried_ones', ending_tag: 'A' }]
   });
   const n15 = make('End', 240, 1210, {
-    ending_tag: 'A', result_type: 'success', on_end_effects: []
+    ending_tag: 'A', ending_title: '룬신을 내보내고 떠난다', on_end_effects: []
   });
   const n16 = make('Effect', 600, 1090, {
     effects: [{ effect_type: 'set_quest_ending', quest_id: 'buried_ones', ending_tag: 'B' }]
   });
   const n17 = make('End', 600, 1210, {
-    ending_tag: 'B', result_type: 'success', on_end_effects: []
+    ending_tag: 'B', ending_title: '룬신을 집으로 데려간다', on_end_effects: []
   });
 
   const nodes = [n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17];
@@ -298,9 +288,6 @@ const buildBuriedOnesQuest = () => {
   return { nodes, edges, groups };
 };
 
-// 빈 캔버스
-const buildSampleQuest = () => ({ nodes: [], edges: [], groups: [] });
-
 // =========================================================
 //  QUEST REGISTRY — 상단 드롭다운에서 선택
 // =========================================================
@@ -311,13 +298,6 @@ const QUESTS = [
     filename: 'quest_buried_ones.qgraph',
     subtitle: '뒤과 함께 버려진 오두막에 도착해 룬신의 처치를 결정한다.',
     build: buildBuriedOnesQuest
-  },
-  {
-    id: 'empty',
-    label: '(새 캔버스)',
-    filename: 'untitled.qgraph',
-    subtitle: '팔레트에서 노드를 추가해 그래프를 구성하세요.',
-    build: buildSampleQuest
   }
 ];
 
@@ -342,7 +322,7 @@ function nodeBodyText(node, memberCount) {
       if (p.is_auto_accept) text += ' · auto';
       return text;
     }
-    case 'End': return `결말 ${p.ending_tag} · ${p.result_type}`;
+    case 'End': return p.ending_title ? `결말 ${p.ending_tag} · ${p.ending_title}` : `결말 ${p.ending_tag}`;
     case 'Check': {
       const tgt = formatTarget(p.target);
       switch (p.question_type) {
@@ -659,6 +639,7 @@ function QuestionBuilder({ value, onChange }) {
           <option value="visited">방문했는가</option>
           <option value="interacted">상호작용했는가</option>
           <option value="quest_state">다른 퀘스트 상태가</option>
+          <option disabled>───────────────</option>
           <option value="direct_fact">(고급) Fact 직접 비교</option>
         </select>
       </Field>
@@ -724,13 +705,12 @@ function QuestionBuilder({ value, onChange }) {
 // =========================================================
 //  EFFECT BUILDER — Effect 노드 및 End의 on_end_effects 공용
 // =========================================================
-const EFFECT_TYPE_LABELS = {
+const EFFECT_TYPE_LABELS_STANDARD = {
   set_quest_ending: '퀘스트 결말 설정',
   set_flag:         '진행 플래그 설정',
   change_counter:   '카운터 증가',
   mark_visited:     '영역 방문 처리',
-  set_entry_route:  '진입경로 기록',
-  direct_fact:      '(고급) Fact 직접 쓰기'
+  set_entry_route:  '진입경로 기록'
 };
 
 function EffectItem({ value, onChange, onDelete, index }) {
@@ -744,7 +724,9 @@ function EffectItem({ value, onChange, onDelete, index }) {
       </div>
       <label style={labelStyle}>Effect Type</label>
       <select style={inputStyle} value={e.effect_type} onChange={ev => upd('effect_type', ev.target.value)}>
-        {Object.entries(EFFECT_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        {Object.entries(EFFECT_TYPE_LABELS_STANDARD).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        <option disabled>───────────────</option>
+        <option value="direct_fact">(고급) Fact 직접 쓰기</option>
       </select>
       {e.effect_type === 'set_quest_ending' && (
         <>
@@ -928,13 +910,7 @@ function renderProperties(node, update, updateAll) {
       return (
         <>
           <Field label="Ending Tag"><input style={inputStyle} value={p.ending_tag} onChange={e => update('ending_tag', e.target.value)} /></Field>
-          <Field label="Result Type">
-            <select style={inputStyle} value={p.result_type} onChange={e => update('result_type', e.target.value)}>
-              <option value="success">success</option>
-              <option value="fail">fail</option>
-              <option value="partial">partial</option>
-            </select>
-          </Field>
+          <Field label="Ending Title"><input style={inputStyle} value={p.ending_title || ''} onChange={e => update('ending_title', e.target.value)} placeholder="HUD/엔딩 화면 표시 이름" /></Field>
           <Field label="On-End Effects">
             <EffectBuilder value={p.on_end_effects || []} onChange={v => update('on_end_effects', v)} />
           </Field>
